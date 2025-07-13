@@ -67,7 +67,7 @@ MESSAGE(STATUS "open62541 Version: ${OPEN62541_VERSION}")
 # Architecture #
 ################
 
-set(UA_ARCHITECTURES "none" "posix" "win32" "zephyr" "freertos-lwip" "posix-lwip")
+set(UA_ARCHITECTURES "none" "posix" "win32" "zephyr" "freertos-lwip" "posix-lwip" "stm32")
 set(UA_ARCHITECTURE "" CACHE STRING "Architecture to build open62541 for")
 SET_PROPERTY(CACHE UA_ARCHITECTURE PROPERTY STRINGS "" ${UA_ARCHITECTURES})
 
@@ -92,6 +92,11 @@ elseif("${UA_ARCHITECTURE}" STREQUAL "freertos-lwip")
 elseif("${UA_ARCHITECTURE}" STREQUAL "posix-lwip")
     set(UA_ARCHITECTURE_LWIP 1)
     set(UA_ARCHITECTURE_POSIX 1)
+elseif("${UA_ARCHITECTURE}" STREQUAL "stm32")
+    set(UA_ARCHITECTURE_STM32 1)
+    set(UA_ARCHITECTURE_LWIP 1)
+    set(UA_ARCHITECTURE_FREERTOS 1)
+    include(arch/stm32/stm32.cmake)
 endif()
 
 #################
@@ -1051,6 +1056,18 @@ if(UA_ARCHITECTURE_LWIP)
             ${PROJECT_SOURCE_DIR}/arch/lwip/eventloop_lwip_udp.c)
 endif()
 
+if(UA_ARCHITECTURE_STM32)
+    list(APPEND plugin_sources
+         ${PROJECT_SOURCE_DIR}/arch/common/timer.h
+         ${PROJECT_SOURCE_DIR}/arch/common/timer.c
+         ${PROJECT_SOURCE_DIR}/arch/stm32/clock_stm32.c
+         ${PROJECT_SOURCE_DIR}/arch/common/eventloop_common.h
+         ${PROJECT_SOURCE_DIR}/arch/common/eventloop_common.c
+         ${PROJECT_SOURCE_DIR}/arch/stm32/eventloop_stm32.h
+         ${PROJECT_SOURCE_DIR}/arch/stm32/eventloop_stm32.c
+         ${PROJECT_SOURCE_DIR}/arch/stm32/eventloop_stm32_tcp.c)
+endif()
+
 if(UA_ARCHITECTURE_LWIP AND UA_ARCHITECTURE_POSIX)
     list(APPEND plugin_sources ${PROJECT_SOURCE_DIR}/arch/posix/clock_posix.c)
 endif()
@@ -1379,7 +1396,7 @@ endif()
 add_library(open62541 $<TARGET_OBJECTS:open62541-object> $<TARGET_OBJECTS:open62541-plugins>)
 
 add_dependencies(open62541-object open62541-code-generation)
-add_dependencies(open62541-plugins open62541-code-generation)
+add_dependencies(open62541-plugins open62541-code_generation)
 
 # Define which code we want to coverage-track
 if(UA_ENABLE_COVERAGE)
